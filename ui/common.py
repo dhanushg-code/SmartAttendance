@@ -620,7 +620,7 @@ def apply_app_style(app: QWidget | object) -> None:
             background-color: #263659;
             color: #FFFFFF;
         }
-        QHeaderView::section {
+        QHeaderView::section, QTableCornerButton::section {
             background-color: #0F172A;
             color: #94A3B8;
             padding: 8px 10px;

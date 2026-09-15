@@ -23,7 +23,7 @@ def main() -> None:
             student_service.add_student(
                 register_no=str(100 + i),
                 name=f"Student {i}",
-                sclass="CSE-A",
+                sclass="1st Year CSE-A",
                 department="CSE",
             )
         # Bind demo fingerprints (simulated scanner: template id = register no)
@@ -86,7 +86,7 @@ def main() -> None:
                     stf = all_stf[(d_idx + p_no) % len(all_stf)]
                     rm = rooms[(d_idx + p_no) % len(rooms)]
                     timetable_service.save_slot(
-                        class_name="CSE-A",
+                        class_name="1st Year CSE-A",
                         day_of_week=day,
                         period_no=p_no,
                         start_time=st,
