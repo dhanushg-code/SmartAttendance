@@ -26,6 +26,31 @@ create table if not exists subjects (
     created_at  timestamptz not null default now()
 );
 
+-- Staff -----------------------------------------------------------------------
+create table if not exists staff (
+    id           uuid primary key default gen_random_uuid(),
+    name         text not null,
+    email        text,
+    phone        text,
+    device_token text,
+    created_at   timestamptz not null default now()
+);
+
+-- Timetable (spec weekly schedule grid) ----------------------------------------
+create table if not exists timetable (
+    id          uuid primary key default gen_random_uuid(),
+    class       text not null,
+    day_of_week text not null,
+    period_no   integer not null,
+    start_time  time not null,
+    end_time    time not null,
+    subject_id  uuid references subjects(id) on delete set null,
+    staff_id    uuid references staff(id) on delete set null,
+    room        text,
+    created_at  timestamptz not null default now(),
+    unique (class, day_of_week, period_no)
+);
+
 -- 18. Attendance (regular classroom) -------------------------------------------
 create table if not exists attendance (
     id          uuid primary key default gen_random_uuid(),
@@ -116,6 +141,8 @@ create index if not exists idx_attendance_student on attendance(student_id);
 create index if not exists idx_exam_attendance_exam on exam_attendance(exam_id);
 create index if not exists idx_seats_hall on seats(hall_id);
 create index if not exists idx_alloc_exam on seat_allocations(exam_id);
+create index if not exists idx_timetable_class on timetable(class);
+create index if not exists idx_timetable_day on timetable(day_of_week);
 
 -- Seed default admin (username: admin, password: admin123 — change after first login)
 insert into admins (username, password_hash)

@@ -20,7 +20,7 @@ class LoginDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("SmartAttend — Secure Admin Access")
         self.setFixedWidth(420)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
+        self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowCloseButtonHint)
 
         self.admin: dict | None = None
 

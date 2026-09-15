@@ -21,6 +21,14 @@ REPORTS_DIR: Path = PROJECT_ROOT / "reports"
 
 APP_NAME: str = "SmartAttend"
 
+# SMTP settings for staff email notifications (spec: alerts for upcoming periods)
+SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com").strip()
+SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER: str = os.getenv("SMTP_USER", "").strip()
+SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "").strip()
+SMTP_FROM: str = os.getenv("SMTP_FROM", "").strip() or SMTP_USER
+SMTP_USE_TLS: bool = os.getenv("SMTP_USE_TLS", "true").strip().lower() in ("1", "true", "yes")
+
 
 def validate() -> list[str]:
     """Return a list of configuration problems (empty list = OK)."""
