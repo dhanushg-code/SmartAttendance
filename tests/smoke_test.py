@@ -12,7 +12,7 @@ from config import settings  # noqa: E402
 
 assert settings.DEMO_MODE, "smoke test requires DEMO_MODE=true"
 
-from database import auth, students as student_service  # noqa: E402
+from database import auth, staff as staff_service, students as student_service, timetable as timetable_service  # noqa: E402
 from database.supabase_client import db  # noqa: E402
 from exams import exams as exam_service  # noqa: E402
 from fingerprint.scanner import ScanEvent, SimulatedScanner  # noqa: E402
@@ -20,6 +20,7 @@ from fingerprint.verification import VerificationService  # noqa: E402
 from attendance.attendance import AttendanceService  # noqa: E402
 from excel.excel_export import export_daily, export_exam_attendance  # noqa: E402
 from scripts.seed_demo import main as seed  # noqa: E402
+from tests.test_alerts import run_tests as test_alerts_run  # noqa: E402
 
 
 def fake_input(_prompt: str = "") -> str:
@@ -108,6 +109,48 @@ daily_path = export_daily()
 assert daily_path.exists() and daily_path.stat().st_size > 0, "daily excel must be written"
 exam_path = export_exam_attendance(exam)
 assert exam_path.exists() and exam_path.stat().st_size > 0, "exam excel must be written"
+
+# 7. staff CRUD --------------------------------------------------------------------------
+staff_list = staff_service.list_staff()
+assert len(staff_list) >= 4, f"expected at least 4 staff, got {len(staff_list)}"
+new_staff = staff_service.add_staff("Dr. Smoke Test", "smoke@test.edu", "+1 555-0000", "tok_smoke")
+assert new_staff["name"] == "Dr. Smoke Test"
+assert staff_service.get_staff_by_email("smoke@test.edu") is not None
+staff_service.update_staff(new_staff["id"], phone="+1 555-1111")
+updated_stf = staff_service.get_staff(new_staff["id"])
+assert updated_stf["phone"] == "+1 555-1111"
+staff_service.delete_staff(new_staff["id"])
+assert staff_service.get_staff(new_staff["id"]) is None
+
+# 8. timetable CRUD ----------------------------------------------------------------------
+tt_list = timetable_service.list_timetable()
+assert len(tt_list) >= 1, "expected timetable slots from seed"
+saved_slot = timetable_service.save_slot(
+    class_name="CSE-A",
+    day_of_week="Monday",
+    period_no=6,
+    start_time="15:00",
+    end_time="16:00",
+    room="Lab 5",
+)
+assert saved_slot["period_no"] == 6
+fetched_slot = timetable_service.get_slot("CSE-A", "Monday", 6)
+assert fetched_slot is not None and fetched_slot["room"] == "Lab 5"
+# Upsert with different room
+timetable_service.save_slot(
+    class_name="CSE-A",
+    day_of_week="Monday",
+    period_no=6,
+    start_time="15:00",
+    end_time="16:00",
+    room="Lab 6",
+)
+assert timetable_service.get_slot("CSE-A", "Monday", 6)["room"] == "Lab 6"
+timetable_service.delete_slot("CSE-A", "Monday", 6)
+assert timetable_service.get_slot("CSE-A", "Monday", 6) is None
+
+# 9. period alerts & notifiers -----------------------------------------------------------
+test_alerts_run()
 
 print("SMOKE OK")
 print("daily report :", daily_path)

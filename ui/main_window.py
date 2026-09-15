@@ -14,14 +14,24 @@ from PySide6.QtWidgets import (
     QStatusBar,
     QVBoxLayout,
     QWidget,
+    QSystemTrayIcon,
 )
+from PySide6.QtGui import QIcon
 
 from fingerprint.scanner import ScannerService
+from timetable.alerts import (
+    CompositeNotifier,
+    DesktopNotifier,
+    EmailNotifier,
+    check_upcoming_periods,
+)
 from ui.attendance import AttendanceWidget
 from ui.common import StatusPill
 from ui.dashboard import DashboardWidget
 from ui.exams import ExamScanWidget, ExamsWidget
+from ui.staff import StaffWidget
 from ui.students import StudentsWidget
+from ui.timetable import TimetableWidget
 
 
 class MainWindow(QMainWindow):
@@ -112,9 +122,11 @@ class MainWindow(QMainWindow):
         nav_items = [
             ("📊  Dashboard", 0),
             ("🎓  Students", 1),
-            ("📋  Attendance", 2),
-            ("📝  Exams", 3),
-            ("🛡️  Exam Kiosk", 4),
+            ("👥  Staff", 2),
+            ("🗓️  Timetable", 3),
+            ("📋  Attendance", 4),
+            ("📝  Exams", 5),
+            ("🛡️  Exam Kiosk", 6),
         ]
 
         for text, index in nav_items:
@@ -252,15 +264,19 @@ class MainWindow(QMainWindow):
         self.stack = QStackedWidget()
         self.dashboard_tab = DashboardWidget()
         self.students_tab = StudentsWidget(scanner_service=self.scanner_service)
+        self.staff_tab = StaffWidget()
+        self.timetable_tab = TimetableWidget()
         self.attendance_tab = AttendanceWidget(scanner_service=self.scanner_service)
         self.exams_tab = ExamsWidget(scanner_service=self.scanner_service)
         self.exam_scan_tab = ExamScanWidget(scanner_service=self.scanner_service)
 
-        self.stack.addWidget(self.dashboard_tab)
-        self.stack.addWidget(self.students_tab)
-        self.stack.addWidget(self.attendance_tab)
-        self.stack.addWidget(self.exams_tab)
-        self.stack.addWidget(self.exam_scan_tab)
+        self.stack.addWidget(self.dashboard_tab)      # 0
+        self.stack.addWidget(self.students_tab)       # 1
+        self.stack.addWidget(self.staff_tab)          # 2
+        self.stack.addWidget(self.timetable_tab)      # 3
+        self.stack.addWidget(self.attendance_tab)     # 4
+        self.stack.addWidget(self.exams_tab)          # 5
+        self.stack.addWidget(self.exam_scan_tab)      # 6
 
         content_lay.addWidget(self.stack, 1)
         main_hlay.addWidget(content_container, 1)
@@ -273,6 +289,22 @@ class MainWindow(QMainWindow):
         mode_text = "DEMO SIMULATOR (In-Memory Mock DB)" if self._demo() else "LIVE DATABASE (Connected)"
         status.addWidget(QLabel(f"  ● Scanner Hardware: {scanner_type}    |    ● Environment: {mode_text}"))
         self.setStatusBar(status)
+
+        # -------------------------------------------------------------
+        # 4. Desktop Tray Icon & Timetable Period Alerts (every 60s)
+        # -------------------------------------------------------------
+        self.tray_icon = QSystemTrayIcon(self)
+        self.tray_icon.setIcon(self.style().standardIcon(self.style().StandardPixmap.SP_ComputerIcon))
+        self.tray_icon.show()
+
+        self.desktop_notifier = DesktopNotifier(tray_icon=self.tray_icon)
+        self.email_notifier = EmailNotifier()
+        self.composite_notifier = CompositeNotifier([self.desktop_notifier, self.email_notifier])
+
+        self.alert_timer = QTimer(self)
+        self.alert_timer.timeout.connect(self._check_timetable_alerts)
+        self.alert_timer.start(60000)  # Check every 60 seconds
+        QTimer.singleShot(2000, self._check_timetable_alerts)
 
         # Set initial active view
         self._set_active_view(0)
@@ -292,6 +324,8 @@ class MainWindow(QMainWindow):
         titles = [
             "Dashboard / System Overview",
             "Students / Enrollment & Directory",
+            "Staff / Faculty Directory & Contact Endpoints",
+            "Timetable / Weekly Academic Schedule Matrix",
             "Attendance / Live Classroom Biometric Scanner",
             "Exams / Scheduling & Seat Allocations",
             "Exam Kiosk / Live Biometric Hall Gate Terminal",
@@ -351,9 +385,19 @@ class MainWindow(QMainWindow):
         elif index == 1:
             self.students_tab.refresh()
         elif index == 2:
-            self.attendance_tab.refresh()
+            self.staff_tab.refresh()
         elif index == 3:
+            self.timetable_tab.refresh()
+        elif index == 4:
+            self.attendance_tab.refresh()
+        elif index == 5:
             self.exams_tab.refresh()
+
+    def _check_timetable_alerts(self) -> None:
+        try:
+            check_upcoming_periods(notifiers=self.composite_notifier)
+        except Exception:
+            pass
 
     def closeEvent(self, event) -> None:
         self.scanner_service.close()

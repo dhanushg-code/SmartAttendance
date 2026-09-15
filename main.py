@@ -40,11 +40,16 @@ def main() -> int:
             pass
 
     login = LoginDialog()
+    login.show()
+    login.raise_()
+    login.activateWindow()
     if login.exec() != LoginDialog.DialogCode.Accepted or not login.admin:
         return 0
 
     window = MainWindow(login.admin)
     window.show()
+    window.raise_()
+    window.activateWindow()
     return app.exec()
 
 
