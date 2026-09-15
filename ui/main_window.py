@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -16,7 +18,6 @@ from PySide6.QtWidgets import (
     QWidget,
     QSystemTrayIcon,
 )
-from PySide6.QtGui import QIcon
 
 from fingerprint.scanner import ScannerService
 from timetable.alerts import (
@@ -71,17 +72,37 @@ class MainWindow(QMainWindow):
         # Brand header
         brand_row = QHBoxLayout()
         brand_row.setSpacing(10)
-        brand_icon = QLabel("🛡️")
+        brand_icon = QLabel()
         brand_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         brand_icon.setFixedSize(38, 38)
-        brand_icon.setStyleSheet(
-            """
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #1E2C4F, stop:1 #141E33);
-            border: 1px solid #6366F1;
-            border-radius: 10px;
-            font-size: 18px;
-            """
-        )
+
+        logo_path = Path(__file__).resolve().parent.parent / "assets" / "grt_logo.png"
+        if not logo_path.exists():
+            logo_path = Path(__file__).resolve().parent.parent / "assets" / "grt_logo.jpg"
+
+        if logo_path.exists():
+            pix = QPixmap(str(logo_path))
+            if not pix.isNull():
+                brand_icon.setPixmap(
+                    pix.scaled(
+                        38,
+                        38,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+                )
+                brand_icon.setStyleSheet("background: transparent;")
+                self.setWindowIcon(QIcon(str(logo_path)))
+        else:
+            brand_icon.setText("🏛️")
+            brand_icon.setStyleSheet(
+                """
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #1E2C4F, stop:1 #141E33);
+                border: 1px solid #6366F1;
+                border-radius: 10px;
+                font-size: 18px;
+                """
+            )
         brand_row.addWidget(brand_icon)
 
         brand_text_box = QVBoxLayout()

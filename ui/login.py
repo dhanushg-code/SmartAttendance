@@ -1,7 +1,10 @@
 """Admin login dialog with high-contrast Obsidian & Sapphire branding."""
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QDialog,
     QFrame,
@@ -19,50 +22,47 @@ class LoginDialog(QDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("SmartAttend — Secure Admin Access")
-        self.setFixedWidth(420)
+        self.setFixedWidth(460)
         self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowCloseButtonHint)
+
+        logo_path = Path(__file__).resolve().parent.parent / "assets" / "grt_logo.png"
+        if logo_path.exists():
+            self.setWindowIcon(QIcon(str(logo_path)))
 
         self.admin: dict | None = None
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(28, 28, 28, 28)
-        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(24, 24, 24, 24)
+        main_layout.setSpacing(16)
 
         # -------------------------------------------------------------
-        # Hero Branding Header
+        # Institutional Header Banner
         # -------------------------------------------------------------
-        header_box = QVBoxLayout()
-        header_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header_box.setSpacing(6)
-
-        icon_chip = QLabel("🛡️")
-        icon_chip.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon_chip.setFixedSize(54, 54)
-        icon_chip.setStyleSheet(
+        banner_container = QFrame()
+        banner_container.setStyleSheet(
             """
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #1E2C4F, stop:1 #141E33);
-            border: 2px solid #6366F1;
-            border-radius: 14px;
-            font-size: 26px;
+            QFrame {
+                background-color: #FFFFFF;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 10px;
+            }
             """
         )
-        header_box.addWidget(icon_chip, 0, Qt.AlignmentFlag.AlignCenter)
+        banner_layout = QVBoxLayout(banner_container)
+        banner_layout.setContentsMargins(6, 6, 6, 6)
+        banner_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        title = QLabel("SmartAttend")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet(
-            "font-size: 24px; font-weight: 800; color: #F8FAFC; letter-spacing: -0.5px;"
-        )
-        header_box.addWidget(title)
+        banner_label = QLabel()
+        banner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        banner_path = Path(__file__).resolve().parent.parent / "assets" / "college_banner.jpg"
+        if banner_path.exists():
+            pix = QPixmap(str(banner_path))
+            if not pix.isNull():
+                scaled = pix.scaledToWidth(390, Qt.TransformationMode.SmoothTransformation)
+                banner_label.setPixmap(scaled)
 
-        subtitle = QLabel("Enterprise Biometric Management System")
-        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet(
-            "font-size: 12px; font-weight: 600; color: #94A3B8; letter-spacing: 0.3px;"
-        )
-        header_box.addWidget(subtitle)
-
-        main_layout.addLayout(header_box)
+        banner_layout.addWidget(banner_label)
+        main_layout.addWidget(banner_container, 0, Qt.AlignmentFlag.AlignCenter)
 
         # -------------------------------------------------------------
         # Form Container
