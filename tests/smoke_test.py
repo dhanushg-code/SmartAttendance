@@ -22,9 +22,8 @@ from excel.excel_export import export_daily, export_exam_attendance  # noqa: E40
 from scripts.seed_demo import main as seed  # noqa: E402
 from tests.test_alerts import run_tests as test_alerts_run  # noqa: E402
 
-
-def fake_input(_prompt: str = "") -> str:
-    return "101"
+def fake_input(prompt=""):
+    return students[0]["fingerprint_id"]
 
 
 builtins.input = fake_input
@@ -33,18 +32,17 @@ builtins.input = fake_input
 seed()
 
 students = student_service.list_students()
-assert len(students) == 20, f"expected 20 students, got {len(students)}"
-assert students[0]["fingerprint_id"] == "101"
+assert len(students) == 344, f"expected 344 students, got {len(students)}"
+assert students[0]["fingerprint_id"] == "110323104001" or students[0]["fingerprint_id"] == "110325104001"
 
 # 2. login --------------------------------------------------------------------------
 assert auth.login("admin", "admin123"), "admin login should succeed"
 assert not auth.login("admin", "wrong"), "bad password must fail"
 
-# 3. classroom attendance + duplicate prevention -------------------------------------
 svc = AttendanceService()
 subject_id = student_service.subjects()[0]["id"]
-stu101 = student_service.get_student_by_register_no("101")
-stu102 = student_service.get_student_by_register_no("102")
+stu101 = students[0]
+stu102 = students[1]
 
 first = svc.mark_present(stu101, subject_id)
 assert first.ok and not first.duplicate, "first scan should mark present"
@@ -62,9 +60,9 @@ assert stats["present"] >= 2, "dashboard present count should include new marks"
 scanner = SimulatedScanner()
 scanner.open()
 verifier = VerificationService()
-event = ScanEvent("101", True)
+event = ScanEvent(students[0]["fingerprint_id"], True)
 ident = verifier.identify_event(event)
-assert ident.success and ident.student["register_no"] == "101"
+assert ident.success and ident.student["register_no"] == students[0]["register_no"]
 assert not verifier.identify_event(ScanEvent("999", True)).success
 
 # 5. exam flow ---------------------------------------------------------------------------

@@ -30,7 +30,7 @@ def get_student_by_fingerprint(template_id: str) -> Optional[dict[str, Any]]:
 
 
 def add_student(register_no: str, name: str, sclass: str, department: str,
-                email: str = "", phone: str = "") -> dict[str, Any]:
+                email: str = "", phone: str = "", batch: str = "") -> dict[str, Any]:
     if get_student_by_register_no(register_no):
         raise StudentError(f"Register number {register_no} already exists")
     resp = db.table("students").insert({
@@ -40,6 +40,7 @@ def add_student(register_no: str, name: str, sclass: str, department: str,
         "department": department,
         "email": email or None,
         "phone": phone or None,
+        "batch": batch or None,
         "fingerprint_id": None,
     }).execute()
     return resp.data[0]

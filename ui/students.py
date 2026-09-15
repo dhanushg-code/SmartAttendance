@@ -98,7 +98,7 @@ class StudentDialog(QDialog):
 
         form.addLayout(r1)
 
-        # Class & Department Row
+        # Class, Department, Batch Row
         r2 = QHBoxLayout()
         r2.setSpacing(12)
 
@@ -107,17 +107,27 @@ class StudentDialog(QDialog):
         lbl_class.setStyleSheet("font-size: 10px; font-weight: 700; color: #94A3B8; letter-spacing: 0.6px;")
         self.sclass = QComboBox()
         self.sclass.setEditable(True)
-        self.sclass.addItems(["CSE-A", "CSE-B", "ECE-A", "ECE-B", "IT-A", "MECH-A"])
+        self.sclass.addItems(["Year 2 - Sec A", "Year 2 - Sec B", "Year 3 - Sec A", "Year 3 - Sec B", "Year 4 - Sec A", "Year 4 - Sec B"])
         box_class.addWidget(lbl_class)
         box_class.addWidget(self.sclass)
         r2.addLayout(box_class, 1)
+
+        box_batch = QVBoxLayout()
+        lbl_batch = QLabel("BATCH *")
+        lbl_batch.setStyleSheet("font-size: 10px; font-weight: 700; color: #94A3B8; letter-spacing: 0.6px;")
+        self.batch = QComboBox()
+        self.batch.setEditable(True)
+        self.batch.addItems(["2025-2029", "2025-2026", "2023-2027"])
+        box_batch.addWidget(lbl_batch)
+        box_batch.addWidget(self.batch)
+        r2.addLayout(box_batch, 1)
 
         box_dept = QVBoxLayout()
         lbl_dept = QLabel("DEPARTMENT *")
         lbl_dept.setStyleSheet("font-size: 10px; font-weight: 700; color: #94A3B8; letter-spacing: 0.6px;")
         self.department = QComboBox()
         self.department.setEditable(True)
-        self.department.addItems(["CSE", "ECE", "IT", "MECH", "CIVIL"])
+        self.department.addItems(["CSE"])
         box_dept.addWidget(lbl_dept)
         box_dept.addWidget(self.department)
         r2.addLayout(box_dept, 1)
@@ -217,6 +227,8 @@ class StudentDialog(QDialog):
                 self.fp_status.setText(f"Enrolled (Template ID #{student['fingerprint_id']})")
                 self.fp_status.setStyleSheet("font-size: 13px; font-weight: 700; color: #34D399;")
                 self.template_id = student["fingerprint_id"]
+            if student.get("batch"):
+                self.batch.setCurrentText(student["batch"])
 
     def _scan_fingerprint(self) -> None:
         try:
@@ -243,6 +255,7 @@ class StudentDialog(QDialog):
                     department=self.department.currentText().strip(),
                     email=self.email.text().strip(),
                     phone=self.phone.text().strip(),
+                    batch=self.batch.currentText().strip(),
                 )
                 sid = self.student["id"]
             else:
@@ -253,6 +266,7 @@ class StudentDialog(QDialog):
                     self.department.currentText().strip(),
                     self.email.text().strip(),
                     self.phone.text().strip(),
+                    self.batch.currentText().strip(),
                 )
                 sid = row["id"]
             if self.template_id:
@@ -286,11 +300,22 @@ class StudentsWidget(QWidget):
         self.search_input.textChanged.connect(self._apply_filter)
         action_bar.addWidget(self.search_input, 2)
 
+        # Batch Filter
+        self.batch_filter = QComboBox()
+        self.batch_filter.setFixedHeight(38)
+        self.batch_filter.addItem("All Batches", "")
+        self.batch_filter.addItem("Batch: 2025-2029", "2025-2029")
+        self.batch_filter.addItem("Batch: 2025-2026", "2025-2026")
+        self.batch_filter.addItem("Batch: 2024-2028", "2024-2028")
+        self.batch_filter.addItem("Batch: 2023-2027", "2023-2027")
+        self.batch_filter.currentIndexChanged.connect(self._apply_filter)
+        action_bar.addWidget(self.batch_filter, 1)
+
         # Department Filter
         self.dept_filter = QComboBox()
         self.dept_filter.setFixedHeight(38)
         self.dept_filter.addItem("All Departments", "")
-        for d in ("CSE", "ECE", "IT", "MECH", "CIVIL"):
+        for d in ("CSE",):
             self.dept_filter.addItem(f"Dept: {d}", d)
         self.dept_filter.currentIndexChanged.connect(self._apply_filter)
         action_bar.addWidget(self.dept_filter, 1)
@@ -337,11 +362,11 @@ class StudentsWidget(QWidget):
         # Modern Students Table
         # -------------------------------------------------------------
         self.table = QTableWidget()
-        self.table.setColumnCount(6)
+        self.table.setColumnCount(7)
         self.table.setHorizontalHeaderLabels(
-            ["Register No", "Student Name", "Class", "Department", "Biometric Status", "ID"]
+            ["Register No", "Student Name", "Class", "Department", "Batch", "Biometric Status", "ID"]
         )
-        self.table.setColumnHidden(5, True)
+        self.table.setColumnHidden(6, True)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.table.setAlternatingRowColors(True)
@@ -350,6 +375,7 @@ class StudentsWidget(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
         self.table.verticalHeader().setVisible(False)
         root.addWidget(self.table, 1)
 
@@ -362,6 +388,7 @@ class StudentsWidget(QWidget):
     def _apply_filter(self) -> None:
         query = self.search_input.text().strip().lower()
         dept = self.dept_filter.currentData() or ""
+        batch = self.batch_filter.currentData() or ""
 
         filtered = []
         for s in self._all_students:
@@ -371,7 +398,8 @@ class StudentsWidget(QWidget):
                 or query in s["register_no"].lower()
             )
             matches_dept = not dept or s["department"] == dept
-            if matches_query and matches_dept:
+            matches_batch = not batch or s.get("batch") == batch
+            if matches_query and matches_dept and matches_batch:
                 filtered.append(s)
 
         self.table.setRowCount(len(filtered))
@@ -383,8 +411,9 @@ class StudentsWidget(QWidget):
             self.table.setItem(r, 1, QTableWidgetItem(stu["name"]))
             self.table.setItem(r, 2, QTableWidgetItem(stu["class"]))
             self.table.setItem(r, 3, QTableWidgetItem(stu["department"]))
-            self.table.setItem(r, 4, QTableWidgetItem(fp_text))
-            self.table.setItem(r, 5, QTableWidgetItem(stu["id"]))
+            self.table.setItem(r, 4, QTableWidgetItem(stu.get("batch") or ""))
+            self.table.setItem(r, 5, QTableWidgetItem(fp_text))
+            self.table.setItem(r, 6, QTableWidgetItem(stu["id"]))
 
         set_pill(self.count_pill, f"Showing {len(filtered)} of {len(self._all_students)} Students", "neutral")
 
@@ -392,7 +421,7 @@ class StudentsWidget(QWidget):
         row = self.table.currentRow()
         if row < 0:
             return None
-        sid = self.table.item(row, 5).text()
+        sid = self.table.item(row, 6).text()
         return student_service.get_student(sid)
 
     def _add(self) -> None:

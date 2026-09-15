@@ -1,0 +1,15 @@
+<USER_REQUEST>
+add all student name for register numberwise and class and section and batchwise in given pdf data using
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-15T15:10:02+05:30.
+
+The user's current state is as follows:
+Active Document: c:\Users\hp\SmartAttendance\fingerprint\scanner.py (LANGUAGE_PYTHON)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\hp\SmartAttendance\fingerprint\scanner.py (LANGUAGE_PYTHON)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Gemini 3.1 Pro (Low). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

@@ -19,13 +19,19 @@ def main() -> None:
             student_service.add_subject(code, name)
 
     if not student_service.list_students():
-        for i in range(1, 21):  # 20 students
+        import json
+        with open(r"c:\Users\hp\SmartAttendance\scripts\students_data.json", "r", encoding="utf-8") as f:
+            students_data = json.load(f)
+
+        for stu in students_data:
             student_service.add_student(
-                register_no=str(100 + i),
-                name=f"Student {i}",
-                sclass="CSE-A",
+                register_no=stu["reg_no"],
+                name=stu["name"],
+                sclass=stu["sec"],
                 department="CSE",
+                batch=stu["batch"],
             )
+
         # Bind demo fingerprints (simulated scanner: template id = register no)
         for stu in student_service.list_students():
             student_service.set_fingerprint(stu["id"], stu["register_no"])

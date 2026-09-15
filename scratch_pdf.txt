@@ -1,0 +1,64 @@
+Created At: 2026-09-15T15:11:00+05:30
+Completed At: 2026-09-15T15:11:00+05:30
+File Path: `file:///c:/Users/hp/SmartAttendance/scripts/extract_students.py`
+Total Lines: 56
+Total Bytes: 2192
+Showing lines 1 to 56
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import json
+2: import re
+3: 
+4: def main():
+5:     transcript_path = r"C:\Users\hp\.gemini\antigravity-ide\brain\0a0d8708-fcff-4b1c-a1bc-71a8e0d6e115\.system_generated\logs\transcript_full.jsonl"
+6:     students = []
+7:     
+8:     with open(transcript_path, 'r', encoding='utf-8') as f:
+9:         for line in f:
+10:             if '"type":"USER_INPUT"' in line and '==Start of PDF==' in line:
+11:                 data = json.loads(line)
+12:                 content = data.get('content', '')
+13:                 
+14:                 # Regex to match: <number> <register_no> <Name (can have spaces)> <Year X - Sec Y> Promoted
+15:                 pattern = re.compile(r'^\d+\s+(\d{12})\s+(.*?)\s+(Year\s+\d+\s+-\s+Sec\s+[A-Z])\s+Promoted$', re.MULTILINE)
+16:                 for match in pattern.finditer(content):
+17:                     reg_no = match.group(1)
+18:                     name = match.group(2).strip()
+19:                     sec = match.group(3).strip()
+20:                     students.append((reg_no, name, sec))
+21:                 
+22:                 break
+23: 
+24:     print(f"Extracted {len(students)} students")
+25:     
+26:     # Write to seed_demo.py
+27:     seed_file = r"c:\Users\hp\SmartAttendance\scripts\seed_demo.py"
+28:     with open(seed_file, 'r', encoding='utf-8') as f:
+29:         seed_content = f.read()
+30: 
+31:     # Find where students_data is defined
+32:     start_str = "students_data = ["
+33:     end_str = "        for reg_no, name, sec in students_data:"
+34:     
+35:     start_idx = seed_content.find(start_str)
+36:     end_idx = seed_content.find(end_str)
+37:     
+38:     if start_idx != -1 and end_idx != -1:
+39:         new_list_str = "students_data = [\n"
+40:         for i, s in enumerate(students):
+41:             new_list_str += f'            ("{s[0]}", "{s[1]}", "{s[2]}")'
+42:             if i < len(students) - 1:
+43:                 new_list_str += ",\n"
+44:             else:
+45:                 new_list_str += "\n        ]\n        "
+46:                 
+47:         new_content = seed_content[:start_idx] + new_list_str + seed_content[end_idx:]
+48:         with open(seed_file, 'w', encoding='utf-8') as f:
+49:             f.write(new_content)
+50:         print("Updated seed_demo.py successfully")
+51:     else:
+52:         print("Could not find students_data block in seed_demo.py")
+53: 
+54: if __name__ == '__main__':
+55:     main()
+56: 
+The above content shows the entire, complete file contents of the requested file.
