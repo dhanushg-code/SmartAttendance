@@ -59,7 +59,7 @@ def main() -> None:
 
     if not staff_service.list_staff():
         staff_data = [
-            ("Dr. Alan Turing", "alan.turing@university.edu", "+1 555-0101", "tok_turing_01"),
+            ("Dr.Suresh", "alan.turing@university.edu", "+1 555-0101", "tok_turing_01"),
             ("Prof. Ada Lovelace", "ada.lovelace@university.edu", "+1 555-0102", "tok_lovelace_02"),
             ("Dr. Grace Hopper", "grace.hopper@university.edu", "+1 555-0103", "tok_hopper_03"),
             ("Dr. Claude Shannon", "claude.shannon@university.edu", "+1 555-0104", "tok_shannon_04"),
