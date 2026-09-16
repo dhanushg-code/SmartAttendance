@@ -6,6 +6,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QTime, Qt
 from PySide6.QtWidgets import (
+    QAbstractButton,
     QComboBox,
     QDialog,
     QFrame,
@@ -36,17 +37,20 @@ DEFAULT_PERIODS = {
     4: ("12:15", "13:15"),
     5: ("14:00", "15:00"),
     6: ("15:00", "16:00"),
+    7: ("16:00", "17:00"),
 }
 
 def load_periods() -> dict[int, tuple[str, str]]:
+    periods = DEFAULT_PERIODS.copy()
     if PERIODS_FILE.exists():
         try:
             with open(PERIODS_FILE, "r") as f:
                 data = json.load(f)
-                return {int(k): tuple(v) for k, v in data.items()}
+                for k, v in data.items():
+                    periods[int(k)] = tuple(v)
         except Exception:
             pass
-    return DEFAULT_PERIODS.copy()
+    return periods
 
 def save_periods(periods: dict[int, tuple[str, str]]) -> None:
     try:
@@ -92,7 +96,7 @@ class ConfigurePeriodsDialog(QDialog):
         form.setSpacing(12)
 
         self.time_edits = {}
-        for p in range(1, 7):
+        for p in range(1, 8):
             row = QHBoxLayout()
             lbl = QLabel(f"Period {p}")
             lbl.setFixedWidth(60)
@@ -101,12 +105,12 @@ class ConfigurePeriodsDialog(QDialog):
             def_start, def_end = PERIOD_DEFAULT_TIMES.get(p, ("00:00", "00:00"))
             
             t_start = QTimeEdit()
-            t_start.setDisplayFormat("HH:mm")
+            t_start.setDisplayFormat("hh:mm AP")
             sh, sm = map(int, def_start.split(":"))
             t_start.setTime(QTime(sh, sm))
             
             t_end = QTimeEdit()
-            t_end.setDisplayFormat("HH:mm")
+            t_end.setDisplayFormat("hh:mm AP")
             eh, em = map(int, def_end.split(":"))
             t_end.setTime(QTime(eh, em))
             
@@ -240,7 +244,7 @@ class TimetableSlotDialog(QDialog):
         lbl_start = QLabel("START TIME *")
         lbl_start.setStyleSheet("font-size: 10px; font-weight: 700; color: #94A3B8; letter-spacing: 0.6px;")
         self.start_time = QTimeEdit()
-        self.start_time.setDisplayFormat("HH:mm")
+        self.start_time.setDisplayFormat("hh:mm AP")
         sh, sm = map(int, def_start.split(":"))
         self.start_time.setTime(QTime(sh, sm))
         box_start.addWidget(lbl_start)
@@ -251,7 +255,7 @@ class TimetableSlotDialog(QDialog):
         lbl_end = QLabel("END TIME *")
         lbl_end.setStyleSheet("font-size: 10px; font-weight: 700; color: #94A3B8; letter-spacing: 0.6px;")
         self.end_time = QTimeEdit()
-        self.end_time.setDisplayFormat("HH:mm")
+        self.end_time.setDisplayFormat("hh:mm AP")
         eh, em = map(int, def_end.split(":"))
         self.end_time.setTime(QTime(eh, em))
         box_end.addWidget(lbl_end)
@@ -371,7 +375,7 @@ class TimetableWidget(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.days = timetable_service.DAYS_OF_WEEK
-        self.period_count = 6
+        self.period_count = 7
         self._grid_cache: dict[str, dict[int, dict]] = {}
 
         root = QVBoxLayout(self)
@@ -383,6 +387,17 @@ class TimetableWidget(QWidget):
         # -------------------------------------------------------------
         action_bar = QHBoxLayout()
         action_bar.setSpacing(12)
+
+        lbl_year = QLabel("YEAR:")
+        lbl_year.setStyleSheet("font-size: 11px; font-weight: 700; color: #94A3B8; letter-spacing: 0.6px;")
+        action_bar.addWidget(lbl_year)
+
+        self.year_selector = QComboBox()
+        self.year_selector.setFixedHeight(38)
+        self.year_selector.setMinimumWidth(120)
+        self.year_selector.addItems(["1st Year", "2nd Year", "3rd Year", "4th Year"])
+        self.year_selector.currentTextChanged.connect(self.refresh)
+        action_bar.addWidget(self.year_selector)
 
         lbl_class = QLabel("CLASS / SECTION:")
         lbl_class.setStyleSheet("font-size: 11px; font-weight: 700; color: #94A3B8; letter-spacing: 0.6px;")
@@ -448,6 +463,16 @@ class TimetableWidget(QWidget):
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.table.cellDoubleClicked.connect(lambda r, c: self._open_slot_dialog(r, c))
 
+        # First corner box header text: Period / Day
+        corner_btn = self.table.findChild(QAbstractButton)
+        if corner_btn:
+            corner_lay = QVBoxLayout(corner_btn)
+            corner_lay.setContentsMargins(4, 4, 4, 4)
+            lbl_corner = QLabel("Period / Day")
+            lbl_corner.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lbl_corner.setStyleSheet("font-size: 11px; font-weight: 700; color: #94A3B8; letter-spacing: 0.5px;")
+            corner_lay.addWidget(lbl_corner)
+
         root.addWidget(self.table, 1)
 
         # Populate classes and load
@@ -462,7 +487,9 @@ class TimetableWidget(QWidget):
         self.refresh()
 
     def current_class(self) -> str:
-        return self.class_selector.currentText().strip() or "CSE-A"
+        yr = self.year_selector.currentText().strip() or "1st Year"
+        cls = self.class_selector.currentText().strip() or "CSE-A"
+        return f"{yr} {cls}"
 
     def refresh(self) -> None:
         cls_name = self.current_class()
@@ -482,7 +509,11 @@ class TimetableWidget(QWidget):
                     full_name = slot.get("subject_name") or ""
                     staff_name = slot.get("staff_name") or "Staff"
                     room = slot.get("room") or "TBA"
-                    times = f"{slot.get('start_time')} - {slot.get('end_time')}"
+                    st = slot.get('start_time')
+                    et = slot.get('end_time')
+                    st_fmt = QTime.fromString(st, "HH:mm").toString("hh:mm AP") if st else ""
+                    et_fmt = QTime.fromString(et, "HH:mm").toString("hh:mm AP") if et else ""
+                    times = f"{st_fmt} - {et_fmt}"
 
                     cell_text = (
                         f"📘 {sub_title} — {full_name}\n"
@@ -557,7 +588,9 @@ class TimetableWidget(QWidget):
         period_headers = []
         for p in range(1, self.period_count + 1):
             def_start, def_end = PERIOD_DEFAULT_TIMES.get(p, ("", ""))
-            period_headers.append(f"Period {p}\n({def_start} - {def_end})")
+            ds_fmt = QTime.fromString(def_start, "HH:mm").toString("hh:mm AP") if def_start else ""
+            de_fmt = QTime.fromString(def_end, "HH:mm").toString("hh:mm AP") if def_end else ""
+            period_headers.append(f"Period {p}\n({ds_fmt} - {de_fmt})")
         self.table.setVerticalHeaderLabels(period_headers)
 
     def _configure_periods(self) -> None:
