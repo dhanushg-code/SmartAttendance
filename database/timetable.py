@@ -134,28 +134,5 @@ def enrich_slot(slot: dict[str, Any]) -> dict[str, Any]:
 
 
 def list_distinct_classes() -> list[str]:
-    """Return a sorted list of all classes found across students and timetable."""
-    classes = set()
-    try:
-        stu_rows = db.table("students").select("class").execute().data
-        for r in stu_rows:
-            c = r.get("class")
-            if c:
-                classes.add(c.strip())
-    except Exception:
-        pass
-
-    try:
-        tt_rows = db.table("timetable").select("class").execute().data
-        for r in tt_rows:
-            c = r.get("class")
-            if c:
-                classes.add(c.strip())
-    except Exception:
-        pass
-
-    default_classes = ["CSE-A", "CSE-B", "ECE-A", "ECE-B", "IT-A", "MECH-A"]
-    for dc in default_classes:
-        classes.add(dc)
-
-    return sorted(classes)
+    """Return a sorted list of all classes."""
+    return ["CSE-A", "CSE-B"]
